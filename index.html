@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>موقعنا</title>
+  <script src="https://unpkg.com/vue@3"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+  <style>
+    body { direction: rtl; background-color: #f9f9f9; }
+    .container { max-width: 800px; margin-top: 40px; }
+    img.logo { width: 200px; margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <div id="app" class="container text-center">
+
+    <!-- الصفحة الرئيسية -->
+    <div v-if="view === 'home'">
+      <h1 class="mb-4">أهلًا بكم في موقعنا</h1>
+      <img src="https://cdn-icons-png.flaticon.com/512/2638/2638951.png" alt="صيانة موبايل" class="logo img-fluid">
+      <div class="d-grid gap-2 col-6 mx-auto mt-4">
+        <button class="btn btn-primary btn-lg" @click="showAdmin">الدخول كـ Admin</button>
+        <button class="btn btn-success btn-lg" @click="view = 'clients'">الزبان الكرام</button>
+      </div>
+    </div>
+
+    <!-- صفحة تسجيل الدخول -->
+    <div v-if="view === 'login'" class="mt-4">
+      <h2>أدخل كلمة المرور</h2>
+      <input type="password" class="form-control my-3" v-model="passwordInput" placeholder="كلمة المرور">
+      <button class="btn btn-primary" @click="checkPassword">دخول</button>
+      <div v-if="loginError" class="text-danger mt-2">كلمة المرور غير صحيحة!</div>
+    </div>
+
+    <!-- صفحة الإدارة -->
+    <div v-if="view === 'admin'" class="mt-4">
+      <h2>لوحة الإدارة</h2>
+
+      <div class="row g-3 align-items-center mb-3">
+        <div class="col">
+          <input type="text" class="form-control" v-model="newName" placeholder="الاسم">
+        </div>
+        <div class="col">
+          <input type="number" class="form-control" v-model.number="newPoints" placeholder="النقاط">
+        </div>
+        <div class="col-auto">
+          <button class="btn btn-success" @click="addClient">إضافة</button>
+        </div>
+      </div>
+
+      <input type="text" class="form-control mb-3" v-model="searchQuery" placeholder="بحث بالاسم">
+
+      <ul class="list-group mb-3">
+        <li class="list-group-item d-flex justify-content-between align-items-center"
+            v-for="(client, index) in filteredClients" :key="index">
+          <div>
+            {{ client.name }} - {{ client.points }} نقطة
+          </div>
+          <div>
+            <button class="btn btn-sm btn-warning me-2" @click="editClient(index)">تعديل</button>
+            <button class="btn btn-sm btn-danger" @click="deleteClient(index)">حذف</button>
+          </div>
+        </li>
+      </ul>
+
+      <div v-if="editingIndex !== null" class="mb-4">
+        <h5>تعديل البيانات</h5>
+        <div class="input-group mb-2">
+          <input type="text" class="form-control" v-model="editName" placeholder="الاسم الجديد">
+          <input type="number" class="form-control" v-model="editPoints" placeholder="النقاط الجديدة">
+          <button class="btn btn-primary" @click="saveEdit">حفظ</button>
+        </div>
+      </div>
+
+      <button class="btn btn-secondary" @click="view = 'home'">رجوع</button>
+    </div>
+
+    <!-- صفحة الزبائن -->
+    <div v-if="view === 'clients'" class="mt-4">
+      <h2>الزبان الكرام</h2>
+      <input type="text" class="form-control mb-3" v-model="searchQuery" placeholder="بحث بالاسم">
+
+      <ul class="list-group mb-3">
+        <li class="list-group-item" v-for="client in filteredClients" :key="client.name">
+          {{ client.name }} - {{ client.points }} نقطة
+        </li>
+      </ul>
+
+      <button class="btn btn-secondary" @click="view = 'home'">رجوع</button>
+    </div>
+
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+
+    createApp({
+      data() {
+        return {
+          view: 'home',
+          passwordInput: '',
+          loginError: false,
+          clients: [],
+          newName: '',
+          newPoints: null,
+          searchQuery: '',
+          editingIndex: null,
+          editName: '',
+          editPoints: null,
+          password: 'A4544m'
+        };
+      },
+      computed: {
+        filteredClients() {
+          const query = this.searchQuery.toLowerCase();
+          return this.clients.filter(c => c.name.toLowerCase().includes(query));
+        }
+      },
+      mounted() {
+        const savedClients = localStorage.getItem('clients');
+        if (savedClients) {
+          this.clients = JSON.parse(savedClients);
+        }
+      },
+      methods: {
+        saveToLocalStorage() {
+          localStorage.setItem('clients', JSON.stringify(this.clients));
+        },
+        showAdmin() {
+          this.view = 'login';
+          this.passwordInput = '';
+          this.loginError = false;
+        },
+        checkPassword() {
+          if (this.passwordInput === this.password) {
+            this.view = 'admin';
+          } else {
+            this.loginError = true;
+          }
+        },
+        addClient() {
+          if (this.newName && this.newPoints !== null) {
+            this.clients.push({ name: this.newName, points: this.newPoints });
+            this.newName = '';
+            this.newPoints = null;
+            this.saveToLocalStorage();
+          }
+        },
+        deleteClient(index) {
+          this.clients.splice(index, 1);
+          this.saveToLocalStorage();
+        },
+        editClient(index) {
+          this.editingIndex = index;
+          this.editName = this.clients[index].name;
+          this.editPoints = this.clients[index].points;
+        },
+        saveEdit() {
+          if (this.editingIndex !== null) {
+            this.clients[this.editingIndex].name = this.editName;
+            this.clients[this.editingIndex].points = this.editPoints;
+            this.editingIndex = null;
+            this.editName = '';
+            this.editPoints = null;
+            this.saveToLocalStorage();
+          }
+        }
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
